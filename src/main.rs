@@ -281,22 +281,3 @@ fn main() -> Result<(), StdError> {
     println!("Procesed {result} blocks");
     Ok(())
 }
-
-//#[cfg(test)]
-// mod tests {
-//     use std::io::Write;
-
-//     use super::*;
-//     #[test]
-//     fn test_copy() -> Result<(), Box<dyn std::error::Error>> {
-//         let mut db = setup_db()?;
-
-//         let mut writer = db.copy_in("COPY outputs FROM stdin")?;
-//         writer.write_all(b"1\t1000\tjane\t0xDEADBEEF\n")?;
-//         writer.finish()?;
-
-//         db.close()?;
-//         assert_eq!(1, 1);
-//         return Ok(());
-//     }
-// }
