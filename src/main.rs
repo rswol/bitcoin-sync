@@ -46,14 +46,18 @@ fn wipedb(conn: &mut postgres::Client) -> Result<(), Error> {
     Ok(())
 }
 
-fn setup_db(cfg: &SyncConfig, wipe: bool) -> Result<postgres::Client, Error> {
+fn setup_db(cfg: &SyncConfig, wipe: bool, partition: bool) -> Result<postgres::Client, Error> {
     let mut conn = postgres::Client::connect(&cfg.db, postgres::NoTls)?;
 
     if wipe {
         wipedb(&mut conn)?;
     }
 
-    exec(&mut conn, include_bytes!("scripts/init.sql"))?;
+    if partition {
+        exec(&mut conn, include_bytes!("scripts/parts.sql"))?;
+    } else {
+        exec(&mut conn, include_bytes!("scripts/init.sql"))?;
+    }
     return Ok(conn);
 }
 
@@ -94,13 +98,13 @@ fn write_output(
     hash: &[u8],
     i: usize,
     out1: &FTxOut,
-    height: usize,
+    _height: usize,
 ) -> Result<usize, StdError> {
     let val = Decimal::from(out1.value);
     let hex_hash = hex::encode(hash).to_uppercase();
 
     for addr in &*out1.addresses {
-        let str = format!("{val}\t{i}\t{addr}\t\\\\x{hex_hash}\t{height}\n");
+        let str = format!("{val}|{i}|{addr}|\\\\x{hex_hash}\n");
         writer.write_all(str.as_bytes())?;
     }
     Ok(1)
@@ -192,6 +196,8 @@ struct Params {
     end: usize,
     #[arg(short, long, default_value_t = false)]
     wipe: bool,
+    #[arg(short, long, default_value_t = false)]
+    partition: bool,
 }
 
 fn main() -> Result<(), StdError> {
@@ -201,7 +207,7 @@ fn main() -> Result<(), StdError> {
     let cfg = confy::load_path(args.config)?;
     println!("{:#?}", cfg);
 
-    let mut pg = setup_db(&cfg, args.wipe)?;
+    let mut pg = setup_db(&cfg, args.wipe, args.partition)?;
     let db = setup_bitcoindb(&cfg, true)?;
 
     let start = last_db_block(&mut pg)?;
@@ -214,8 +220,9 @@ fn main() -> Result<(), StdError> {
     println!("last block is {end}, start from {start}");
 
     let result = batch_process(start, end, |s, e| {
+        let mut pg_trx = pg.transaction()?;
         let mut block_writer =
-            pg.copy_in("COPY blocks (id, hash, coinbase, blksize) FROM stdin")?;
+            pg_trx.copy_in("COPY blocks (id, hash, coinbase, blksize) FROM stdin")?;
         process_blocks_only(
             &db,
             |blk, height| {
@@ -235,7 +242,7 @@ fn main() -> Result<(), StdError> {
         block_writer.finish()?;
 
         let mut tx_writer =
-            pg.copy_in("COPY trxs (hash, ins, outs, txsize, block_id, coinbase) FROM stdin")?;
+            pg_trx.copy_in("COPY trxs (hash, ins, outs, txsize, block_id, coinbase) FROM stdin")?;
         process_blocks(
             &db,
             |_blk, tx, height| {
@@ -258,8 +265,8 @@ fn main() -> Result<(), StdError> {
         )?;
         tx_writer.finish()?;
 
-        let mut output_writer =
-            pg.copy_in("COPY outputs (value, index, address, tx_hash, block_id) FROM stdin")?;
+        let mut output_writer = pg_trx
+            .copy_in("COPY outputs (value, index, address, tx_hash) FROM stdin (DELIMETER '|')")?;
         let result = process_blocks(
             &db,
             |_blk, tx, height| {
@@ -274,10 +281,24 @@ fn main() -> Result<(), StdError> {
             e,
         )?;
         output_writer.finish()?;
+        pg_trx.commit()?;
         Ok(result)
     })?;
 
     post_hook(&mut pg)?;
     println!("Procesed {result} blocks");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn test_print() {
+        let x = Decimal::from(10000001);
+        println!("> {x}");
+        assert_eq!(3, 3);
+    }
 }
