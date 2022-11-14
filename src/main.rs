@@ -266,7 +266,7 @@ fn main() -> Result<(), StdError> {
         tx_writer.finish()?;
 
         let mut output_writer = pg_trx
-            .copy_in("COPY outputs (value, index, address, tx_hash) FROM stdin (DELIMETER '|')")?;
+            .copy_in("COPY outputs (value, index, address, tx_hash) FROM stdin DELIMITER '|'")?;
         let result = process_blocks(
             &db,
             |_blk, tx, height| {
