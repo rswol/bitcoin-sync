@@ -6,14 +6,13 @@ CREATE TABLE IF NOT EXISTS blocks (
 ) using columnar ;
 
 CREATE TABLE IF NOT EXISTS trxs (
-  id serial PRIMARY KEY,
   hash bytea NOT NULL,
   ins int NOT NULL,
   outs int NOT NULL,
   txsize int check (txsize > 0) NOT NULL,
   coinbase boolean,
   txdata decimal(13) DEFAULT NULL,
-  block_id decimal(11) DEFAULT NULL
+  block_id int DEFAULT NULL
 ) using columnar;
 
 CREATE TABLE IF NOT EXISTS outputs (
