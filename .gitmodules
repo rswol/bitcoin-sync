@@ -1,0 +1,3 @@
+[submodule "rust-bitcoin"]
+	path = rust-bitcoin
+	url = https://github.com/rust-bitcoin/rust-bitcoin.git

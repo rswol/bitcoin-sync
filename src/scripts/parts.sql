@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS trxs (
   block_id int DEFAULT NULL
 ) PARTITION by range (block_id);
 
+
 CREATE TABLE IF NOT EXISTS outputs (
   value decimal(16) DEFAULT NULL,
   index int NOT NULL,
@@ -30,13 +31,12 @@ CREATE TABLE IF NOT EXISTS inputs (
   in_index int NOT NULL
 ) PARTITION by hash (in_hash);
 
-CREATE TABLE IF NOT EXISTS outpoints (
+CREATE TABLE IF NOT EXISTS spent (
     tx_hash bytea not null, 
-    index int not null, 
-    in_hash bytea not null, 
-    in_index int not null, 
-    value decimal(16) DEFAULT NULL,
-    address varchar DEFAULT NULL 
+    index int not null,
+    address varchar NOT NULL,
+    value decimal(16) NOT NULL
+
 )  PARTITION by hash (tx_hash);
 
 
@@ -106,11 +106,11 @@ CREATE TABLE if not exists inputs_5 PARTITION OF inputs FOR VALUES WITH (MODULUS
 CREATE TABLE if not exists inputs_6 PARTITION OF inputs FOR VALUES WITH (MODULUS 8,REMAINDER 6)  using columnar;
 CREATE TABLE if not exists inputs_7 PARTITION OF inputs FOR VALUES WITH (MODULUS 8,REMAINDER 7)  using columnar;
 
-CREATE TABLE if not exists outpoints_0 PARTITION OF outpoints FOR VALUES WITH (MODULUS 8,REMAINDER 0) using columnar;
-CREATE TABLE if not exists outpoints_1 PARTITION OF outpoints FOR VALUES WITH (MODULUS 8,REMAINDER 1) using columnar;
-CREATE TABLE if not exists outpoints_2 PARTITION OF outpoints FOR VALUES WITH (MODULUS 8,REMAINDER 2)  using columnar;
-CREATE TABLE if not exists outpoints_3 PARTITION OF outpoints FOR VALUES WITH (MODULUS 8,REMAINDER 3)  using columnar;
-CREATE TABLE if not exists outpoints_4 PARTITION OF outpoints FOR VALUES WITH (MODULUS 8,REMAINDER 4)  using columnar;
-CREATE TABLE if not exists outpoints_5 PARTITION OF outpoints FOR VALUES WITH (MODULUS 8,REMAINDER 5)  using columnar;
-CREATE TABLE if not exists outpoints_6 PARTITION OF outpoints FOR VALUES WITH (MODULUS 8,REMAINDER 6)  using columnar;
-CREATE TABLE if not exists outpoints_7 PARTITION OF outpoints FOR VALUES WITH (MODULUS 8,REMAINDER 7)  using columnar;
+CREATE TABLE if not exists spent_0 PARTITION OF spent FOR VALUES WITH (MODULUS 8,REMAINDER 0) using columnar;
+CREATE TABLE if not exists spent_1 PARTITION OF spent FOR VALUES WITH (MODULUS 8,REMAINDER 1) using columnar;
+CREATE TABLE if not exists spent_2 PARTITION OF spent FOR VALUES WITH (MODULUS 8,REMAINDER 2) using columnar;
+CREATE TABLE if not exists spent_3 PARTITION OF spent FOR VALUES WITH (MODULUS 8,REMAINDER 3) using columnar;
+CREATE TABLE if not exists spent_4 PARTITION OF spent FOR VALUES WITH (MODULUS 8,REMAINDER 4) using columnar;
+CREATE TABLE if not exists spent_5 PARTITION OF spent FOR VALUES WITH (MODULUS 8,REMAINDER 5) using columnar;
+CREATE TABLE if not exists spent_6 PARTITION OF spent FOR VALUES WITH (MODULUS 8,REMAINDER 6) using columnar;
+CREATE TABLE if not exists spent_7 PARTITION OF spent FOR VALUES WITH (MODULUS 8,REMAINDER 7) using columnar;
