@@ -1,6 +1,6 @@
--- ANALYZE trxs;
--- ANALYZE outputs; 
--- ANALYZE inputs; 
+ANALYZE trxs;
+ANALYZE outputs; 
+ANALYZE inputs; 
 
 ^L
 

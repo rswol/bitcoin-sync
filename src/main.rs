@@ -127,7 +127,7 @@ fn last_db_block(pg: &mut postgres::Client) -> Result<usize, Error> {
 fn missing_db_blocks(pg: &mut postgres::Client, tip: usize) -> Result<Vec<usize>, Error> {
     let sql = format!(
         "select id from generate_series(0, {tip}) id where id not in (select id from blocks)
-         order by 1 desc
+         order by 1 asc
          limit 10"
     );
     let rows = pg.query(&sql, &[])?;
@@ -315,6 +315,16 @@ struct Params {
     online: bool,
 }
 
+fn find_output(pg: &mut postgres::Transaction, hash: &[u8], index: i32) -> StdResult<Option<(String, Decimal)>> {
+    let stmt = pg.prepare("select address, value from outputs where tx_hash = $1 and index = $2")?;
+    let rows = pg.query(&stmt, &[&hash, &index])?;
+    if rows.len() == 0 {
+        Ok(None)
+    } else {
+        Ok(Some((rows[0].get(0), rows[0].get(1))))
+    }
+}
+
 fn online(
     rpc: &bitcoincore_rpc::Client,
     pg: &mut postgres::Client,
@@ -327,6 +337,10 @@ fn online(
     let inputs_stmt = pg.prepare(
         "insert into inputs (tx_hash, index, in_hash, in_index) values ($1, $2, $3, $4)",
     )?;
+
+    let spent_stmt = pg.prepare("insert into spent (tx_hash, index, address, value) values ($1, $2, $3, $4)")?;
+    
+    
     let mut pg_trx = pg.transaction()?;
     let block = rpc::fetch_block_by_height(&rpc, start, |block, txid, coinbase| {
         let hash = make_hash(&txid);
@@ -358,6 +372,11 @@ fn online(
             let in_hash = make_hash(&prev.txid);
             let in_index = prev.vout as i32;
             pg_trx.execute(&inputs_stmt, &[&hash, &i, &in_hash, &in_index])?;
+
+            let out = find_output(&mut pg_trx, &in_hash, in_index)?;
+            if let Some((addr, val)) = out {
+                pg_trx.execute(&spent_stmt, &[&hash, &i, &addr, &val])?;
+            }
             index += 1;
         }
         Ok(())
