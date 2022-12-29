@@ -1,3 +1,0 @@
-[submodule "rust-bitcoin"]
-	path = rust-bitcoin
-	url = https://github.com/rswol/rust-bitcoin.git
