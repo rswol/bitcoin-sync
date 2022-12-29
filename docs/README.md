@@ -27,6 +27,7 @@ postgres=# select count(*) from blocks ;
 ```
 
 Available tables are:
+
 | Table Name | Description           | Partitioning | Indexes |
 |------------|-----------------------|--------------|---------|
 | blocks     | Bitcoin blocks        | N/A          | |
